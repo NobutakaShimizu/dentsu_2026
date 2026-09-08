@@ -1,0 +1,7 @@
+{
+  "name": "slidev-addon-bomb",
+  "version": "0.1.0",
+  "private": true,
+  "keywords": ["slidev-addon", "slidev"],
+  "description": "Slidev addon: suika-wari timer — walker approaches watermelon as time elapses; fireworks on timeout"
+}

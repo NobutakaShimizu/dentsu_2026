@@ -1,0 +1,594 @@
+.bomb-start-button,
+.suika-start-button {
+  position: fixed;
+  left: 50%;
+  bottom: 56px;
+  transform: translateX(-50%);
+  z-index: 40;
+  pointer-events: auto;
+  padding: 0.45rem 1.4rem;
+  border: 2px solid rgb(67 160 71 / 85%);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgb(232 245 233 / 96%) 0%, rgb(200 230 201 / 96%) 100%);
+  color: #1b5e20;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 12%),
+    0 4px 16px rgb(0 0 0 / 18%),
+    0 0 18px rgb(129 199 132 / 35%);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.suika-start-button:hover {
+  transform: translateX(-50%) translateY(-1px);
+  border-color: rgb(46 125 50 / 90%);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 12%),
+    0 6px 20px rgb(0 0 0 / 22%),
+    0 0 24px rgb(102 187 106 / 45%);
+}
+
+.suika-start-button:active {
+  transform: translateX(-50%) translateY(0);
+}
+
+.bomb-timer-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  pointer-events: none;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: visible;
+  display: flex;
+  justify-content: stretch;
+}
+
+.bomb-screen-flash {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at calc(100% - 40px) calc(100% - 32px), rgb(255 255 255 / 35%) 0%, rgb(255 235 59 / 12%) 12%, transparent 42%);
+  animation: bomb-screen-flash 1s ease-out forwards;
+  pointer-events: none;
+  z-index: 99991;
+}
+
+.bomb-screen-fireworks {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 99990;
+}
+
+.bomb-screen-fw-particle {
+  position: absolute;
+  width: var(--size, 5px);
+  height: var(--size, 5px);
+  border-radius: 50%;
+  background: var(--color, #ff1744);
+  box-shadow:
+    0 0 8px var(--color),
+    0 0 16px var(--color);
+  opacity: 0;
+  animation: bomb-screen-fw-burst 1s ease-out var(--delay, 0s) forwards;
+}
+
+.bomb-screen-fw-streak {
+  position: absolute;
+  width: 3px;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fff 0%, var(--color, #ff9100) 45%, transparent 100%);
+  box-shadow: 0 0 10px var(--color);
+  opacity: 0;
+  animation: bomb-screen-fw-streak 1s ease-out var(--delay, 0s) forwards;
+}
+
+@keyframes bomb-screen-fw-burst {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(1.4);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--dist)) scale(0.15);
+  }
+}
+
+@keyframes bomb-screen-fw-streak {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scaleY(0.4);
+  }
+
+  10% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(calc(var(--dist) * 0.12)) scaleY(1.2);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--dist)) scaleY(0.2);
+  }
+}
+
+.bomb-timer-track,
+.suika-timer-track {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0;
+  width: 100%;
+  height: 56px;
+  padding: 0 8px 2px;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.bomb-timer-rail-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  margin-right: -8px;
+  padding-bottom: 6px;
+}
+
+.bomb-timer-rail,
+.suika-timer-rail {
+  position: relative;
+  height: 40px;
+  width: 100%;
+  overflow: visible;
+}
+
+.suika-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  height: 3px;
+  border-radius: 999px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgb(141 110 99 / 35%) 0 8px,
+    rgb(141 110 99 / 12%) 8px 16px
+  );
+}
+
+.suika-ground-remain {
+  position: absolute;
+  bottom: 4px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(67 160 71 / 55%), rgb(46 125 50 / 70%));
+  box-shadow: 0 0 6px rgb(129 199 132 / 35%);
+  transition: left 0.1s linear, width 0.1s linear;
+}
+
+.bomb-timer-page {
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #1976d2;
+  border: 1px solid #fff;
+  box-shadow: 0 0 0 1px rgb(25 118 210 / 35%);
+  transition: left 0.25s ease-out;
+  z-index: 2;
+}
+
+/* ---- walker (水役) ---- */
+.suika-walker-host {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  z-index: 3;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.suika-walker {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 48px;
+  height: 56px;
+  margin-left: -24px;
+  transform-origin: 50% 100%;
+  animation: suika-walk-bob 0.42s ease-in-out infinite;
+}
+
+.suika-walker-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.suika-person-head {
+  fill: #ffe0b2;
+  stroke: #ef9a9a;
+  stroke-width: 0.8;
+}
+
+.suika-person-body {
+  fill: #42a5f5;
+  stroke: #1e88e5;
+  stroke-width: 0.9;
+}
+
+.suika-blindfold {
+  fill: #37474f;
+}
+
+.suika-blindfold-tie {
+  fill: none;
+  stroke: #37474f;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.suika-person-arm {
+  fill: none;
+  stroke: #ffe0b2;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.suika-leg {
+  fill: none;
+  stroke: #5d4037;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  transform-origin: 18px 38px;
+}
+
+.suika-leg-l {
+  animation: suika-leg-l 0.42s ease-in-out infinite;
+}
+
+.suika-leg-r {
+  animation: suika-leg-r 0.42s ease-in-out infinite;
+}
+
+.suika-stick {
+  transform-origin: 28px 22px;
+  animation: suika-stick-sway 0.42s ease-in-out infinite;
+}
+
+.suika-stick-shaft {
+  stroke: #6d4c41;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.suika-stick-tip {
+  fill: #8d6e63;
+  stroke: #5d4037;
+  stroke-width: 0.6;
+}
+
+.suika-walker.is-ignited {
+  animation: suika-swing 0.18s ease-in-out infinite;
+}
+
+.suika-walker.is-ignited .suika-stick {
+  animation: suika-stick-hit 0.18s ease-in-out infinite;
+}
+
+.suika-walker.is-ignited .suika-leg-l,
+.suika-walker.is-ignited .suika-leg-r {
+  animation: none;
+}
+
+/* ---- watermelon ---- */
+.bomb-unit,
+.suika-unit {
+  position: relative;
+  flex-shrink: 0;
+  width: 72px;
+  height: 52px;
+  margin-bottom: 0;
+  margin-left: 0;
+  transform-origin: 50% 80%;
+  z-index: 4;
+  overflow: visible;
+}
+
+.bomb-unit.is-ignited {
+  animation: bomb-shake 0.08s ease-in-out infinite;
+}
+
+.bomb-unit.is-critical {
+  animation: bomb-shake 0.12s ease-in-out infinite;
+}
+
+.bomb-unit.is-exploded {
+  animation: bomb-explode-shake 1s ease-out;
+}
+
+.bomb-svg,
+.suika-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.suika-rind {
+  fill: #43a047;
+  stroke: #2e7d32;
+  stroke-width: 1.6;
+}
+
+.suika-stripe {
+  fill: none;
+  stroke: #1b5e20;
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: 0.45;
+}
+
+.suika-shine {
+  fill: rgb(255 255 255 / 28%);
+}
+
+.suika-stem {
+  fill: none;
+  stroke: #5d4037;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.suika-leaf {
+  fill: #81c784;
+  stroke: #388e3c;
+  stroke-width: 0.8;
+}
+
+.suika-glow {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(129 199 132 / calc(var(--heat-glow, 0) * 0.55)) 0%, transparent 70%);
+  pointer-events: none;
+  transition: background 0.15s ease;
+}
+
+.bomb-page-num,
+.suika-page-num {
+  fill: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.02em;
+  paint-order: stroke fill;
+  stroke: rgb(0 0 0 / 35%);
+  stroke-width: 0.6px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.bomb-explosion {
+  position: absolute;
+  inset: -80px -60px -40px -40px;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.fw-flash {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0;
+  animation: fw-flash 0.45s ease-out forwards;
+}
+
+.fw-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  animation: fw-ring 1s ease-out forwards;
+}
+
+.fw-ring-1 {
+  border-color: rgb(255 23 68 / 90%);
+  animation-delay: 0s;
+}
+
+.fw-ring-2 {
+  border-color: rgb(255 234 0 / 80%);
+  animation-delay: 0.08s;
+}
+
+.fw-ring-3 {
+  border-color: rgb(41 121 255 / 75%);
+  animation-delay: 0.14s;
+}
+
+.fw-spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: fw-spark-fly 1s ease-out var(--delay, 0s) forwards;
+}
+
+.fw-spark-0 { background: #ff1744; box-shadow: 0 0 8px #ff1744, 0 0 14px #ff5252; }
+.fw-spark-1 { background: #ff9100; box-shadow: 0 0 8px #ff9100, 0 0 14px #ffab40; }
+.fw-spark-2 { background: #ffea00; box-shadow: 0 0 8px #ffea00, 0 0 14px #ffff8d; }
+.fw-spark-3 { background: #76ff03; box-shadow: 0 0 8px #76ff03, 0 0 14px #b2ff59; }
+.fw-spark-4 { background: #2979ff; box-shadow: 0 0 8px #2979ff, 0 0 14px #82b1ff; }
+.fw-spark-5 { background: #e040fb; box-shadow: 0 0 8px #e040fb, 0 0 14px #ea80fc; }
+.fw-spark-6 { background: #ff4081; box-shadow: 0 0 8px #ff4081, 0 0 14px #ff80ab; }
+.fw-spark-7 { background: #00e5ff; box-shadow: 0 0 8px #00e5ff, 0 0 14px #84ffff; }
+
+.fw-trail {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fff 0%, var(--trail-color, #ff9100) 42%, transparent 100%);
+  box-shadow: 0 0 8px var(--trail-color, #ff9100);
+  opacity: 0;
+  animation: fw-trail-fly 1s ease-out var(--delay, 0s) forwards;
+}
+
+.fw-secondary {
+  position: absolute;
+  left: calc(50% + var(--bx, 0px));
+  top: calc(50% + var(--by, 0px));
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 235 59 / 95%) 0%, rgb(255 64 129 / 55%) 35%, transparent 72%);
+  opacity: 0;
+  animation: fw-secondary-burst 1s ease-out var(--delay, 0s) forwards;
+}
+
+@keyframes suika-walk-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes suika-leg-l {
+  0%, 100% { transform: rotate(14deg); }
+  50% { transform: rotate(-12deg); }
+}
+
+@keyframes suika-leg-r {
+  0%, 100% { transform: rotate(-12deg); }
+  50% { transform: rotate(14deg); }
+}
+
+@keyframes suika-stick-sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(6deg); }
+}
+
+@keyframes suika-swing {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-1px) rotate(3deg); }
+}
+
+@keyframes suika-stick-hit {
+  0%, 100% { transform: rotate(-28deg); }
+  50% { transform: rotate(18deg); }
+}
+
+@keyframes bomb-shake {
+  0%, 100% { transform: rotate(-1.5deg); }
+  50% { transform: rotate(1.5deg); }
+}
+
+@keyframes bomb-explode-shake {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes bomb-screen-flash {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes fw-flash {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(2.5); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(4); }
+}
+
+@keyframes fw-ring {
+  0% {
+    width: 8px;
+    height: 8px;
+    opacity: 1;
+  }
+
+  100% {
+    width: 140px;
+    height: 140px;
+    opacity: 0;
+  }
+}
+
+@keyframes fw-spark-fly {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(1);
+  }
+
+  85% {
+    opacity: 0.85;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--dist)) scale(0.15);
+  }
+}
+
+@keyframes fw-trail-fly {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scaleY(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--dist)) scaleY(0.2);
+  }
+}
+
+@keyframes fw-secondary-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+
+  30% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(2);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.8);
+  }
+}
