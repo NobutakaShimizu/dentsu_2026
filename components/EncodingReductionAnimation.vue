@@ -1,12 +1,23 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useNav, useSlideContext } from '@slidev/client'
+import { QrCodeDataType, encode as encodeQr } from 'uqr'
 import MathTex from './Math.vue'
 
 const N = 4
-const N2 = 6
 const Q = 5
-const NOISE_COUNT = 28
+
+const qrOpts = {
+  ecc: 'Q' as const,
+  border: 0,
+  minVersion: 1,
+  maxVersion: 2,
+}
+
+const qrA = encodeQr('Enc(A)', qrOpts)
+const qrB = encodeQr('Enc(B)', qrOpts)
+const qrP = encodeQr('Enc(AB)', qrOpts)
+const QR = qrA.size
 
 const { $clicks } = useSlideContext()
 const { isPrintMode } = useNav()
@@ -28,17 +39,6 @@ function makeMat(n: number, seed: number) {
   )
 }
 
-function encode(m: number[][], seed: number) {
-  const rng = mulberry32(seed)
-  return Array.from({ length: N2 }, (_, i) =>
-    Array.from({ length: N2 }, (_, j) => {
-      if (i < N && j < N)
-        return m[i]![j]!
-      return Math.floor(rng() * Q)
-    }),
-  )
-}
-
 function mul(a: number[][], b: number[][]) {
   const n = a.length
   return Array.from({ length: n }, (_, i) =>
@@ -51,46 +51,35 @@ function mul(a: number[][], b: number[][]) {
   )
 }
 
-function isMsg(i: number, j: number) {
-  return i < N && j < N
+const encodeCells = Array.from({ length: QR * QR }, (_, t) => ({
+  i: Math.floor(t / QR),
+  j: t % QR,
+}))
+
+function shuffleCells<T>(arr: T[], seed: number) {
+  const rng = mulberry32(seed)
+  const out = arr.slice()
+  for (let t = out.length - 1; t > 0; t--) {
+    const u = Math.floor(rng() * (t + 1))
+    const tmp = out[t]!
+    out[t] = out[u]!
+    out[u] = tmp
+  }
+  return out
 }
 
-const extraCells = Array.from({ length: N2 * N2 }, (_, t) => ({
-  i: Math.floor(t / N2),
-  j: t % N2,
-})).filter(p => !isMsg(p.i, p.j))
+const extraOrderA = shuffleCells(encodeCells, 101)
+const extraOrderB = shuffleCells(encodeCells, 202)
+const extraIndexA = new Map(extraOrderA.map((p, k) => [`${p.i},${p.j}`, k]))
+const extraIndexB = new Map(extraOrderB.map((p, k) => [`${p.i},${p.j}`, k]))
 
 const A = makeMat(N, 21)
 const B = makeMat(N, 34)
-const Ap = encode(A, 81)
-const Bp = encode(B, 92)
-const exact = mul(Ap, Bp)
 const AB = mul(A, B)
 
-const rngNoise = mulberry32(55)
-const noiseOrder = Array.from({ length: N2 * N2 }, (_, t) => t)
-for (let t = noiseOrder.length - 1; t > 0; t--) {
-  const u = Math.floor(rngNoise() * (t + 1))
-  const tmp = noiseOrder[t]!
-  noiseOrder[t] = noiseOrder[u]!
-  noiseOrder[u] = tmp
-}
-const noiseCells = noiseOrder.slice(0, NOISE_COUNT).map(t => ({
-  i: Math.floor(t / N2),
-  j: t % N2,
-}))
-const noiseSet = new Set(noiseCells.map(p => p.i * N2 + p.j))
-
-const M = exact.map((row, i) =>
-  row.map((v, j) => {
-    if (!noiseSet.has(i * N2 + j))
-      return v
-    let w = v
-    while (w === v)
-      w = Math.floor(rngNoise() * Q)
-    return w
-  }),
-)
+const noiseCandidates = encodeCells.filter(p => qrP.types[p.i]![p.j] === QrCodeDataType.Data)
+const NOISE_COUNT = Math.max(18, Math.round(noiseCandidates.length * 0.16))
+const noiseCells = shuffleCells(noiseCandidates, 55).slice(0, NOISE_COUNT)
 
 const clicks = computed(() => $clicks.value ?? 0)
 const stage = computed(() => {
@@ -102,6 +91,8 @@ const stage = computed(() => {
 const showEnc = ref(false)
 const showApBp = ref(false)
 const extraCount = ref(0)
+const encodeTick = ref(0)
+const encoding = ref(false)
 const showMArrow = ref(false)
 const showProducts = ref(false)
 const noiseShown = ref(0)
@@ -109,6 +100,7 @@ const showDec = ref(false)
 const showAB = ref(false)
 
 let token = 0
+let encodeTickId = 0
 
 function delay(ms: number, t: number) {
   return new Promise<void>((resolve) => {
@@ -119,11 +111,25 @@ function delay(ms: number, t: number) {
   })
 }
 
+function clearEncodeTick() {
+  if (encodeTickId) {
+    window.clearInterval(encodeTickId)
+    encodeTickId = 0
+  }
+}
+
+function stopEncodeTick() {
+  clearEncodeTick()
+  encoding.value = false
+}
+
 function reset() {
   token += 1
+  stopEncodeTick()
   showEnc.value = false
   showApBp.value = false
   extraCount.value = 0
+  encodeTick.value = 0
   showMArrow.value = false
   showProducts.value = false
   noiseShown.value = 0
@@ -133,9 +139,11 @@ function reset() {
 
 function applyFinal() {
   token += 1
+  stopEncodeTick()
   showEnc.value = true
   showApBp.value = true
-  extraCount.value = extraCells.length
+  extraCount.value = encodeCells.length
+  encodeTick.value = 0
   showMArrow.value = true
   showProducts.value = true
   noiseShown.value = NOISE_COUNT
@@ -147,12 +155,41 @@ async function playEncode(t: number) {
   showEnc.value = true
   showApBp.value = true
   extraCount.value = 0
-  for (let k = 1; k <= extraCells.length; k++) {
-    if (t !== token)
-      return
-    extraCount.value = k
-    await delay(16, t)
-  }
+  encodeTick.value = 0
+  clearEncodeTick()
+  encoding.value = true
+
+  const scrambleMs = 320
+  const lockMs = 720
+  const started = performance.now()
+
+  await new Promise<void>((resolve) => {
+    encodeTickId = window.setInterval(() => {
+      if (t !== token) {
+        window.clearInterval(encodeTickId)
+        encodeTickId = 0
+        resolve()
+        return
+      }
+      encodeTick.value += 1
+      const elapsed = performance.now() - started
+      const locked = elapsed < scrambleMs
+        ? 0
+        : Math.min(
+            encodeCells.length,
+            Math.round(((elapsed - scrambleMs) / lockMs) * encodeCells.length),
+          )
+      extraCount.value = locked
+      if (locked >= encodeCells.length) {
+        window.clearInterval(encodeTickId)
+        encodeTickId = 0
+        resolve()
+      }
+    }, 18)
+  })
+
+  if (t === token)
+    stopEncodeTick()
 }
 
 async function playProducts(t: number) {
@@ -162,12 +199,12 @@ async function playProducts(t: number) {
     return
   showProducts.value = true
   noiseShown.value = 0
-  await delay(380, t)
+  await delay(420, t)
   for (let k = 1; k <= NOISE_COUNT; k++) {
     if (t !== token)
       return
     noiseShown.value = k
-    await delay(22, t)
+    await delay(18, t)
   }
 }
 
@@ -190,16 +227,17 @@ watch(
       noiseShown.value = 0
       showDec.value = false
       showAB.value = false
-      if (!showApBp.value || extraCount.value < extraCells.length)
+      if (!showApBp.value || extraCount.value < encodeCells.length)
         playEncode(++token)
       else
-        extraCount.value = extraCells.length
+        extraCount.value = encodeCells.length
       return
     }
 
+    stopEncodeTick()
     showEnc.value = true
     showApBp.value = true
-    extraCount.value = extraCells.length
+    extraCount.value = encodeCells.length
 
     if (n === 2) {
       token += 1
@@ -224,13 +262,29 @@ watch(
 
 onUnmounted(() => {
   token += 1
+  stopEncodeTick()
 })
 
-function extraVisible(i: number, j: number) {
-  if (isMsg(i, j))
-    return true
-  const idx = extraCells.findIndex(p => p.i === i && p.j === j)
+function extraIndex(which: 'A' | 'B', i: number, j: number) {
+  const map = which === 'A' ? extraIndexA : extraIndexB
+  return map.get(`${i},${j}`) ?? -1
+}
+
+function extraLocked(which: 'A' | 'B', i: number, j: number) {
+  const idx = extraIndex(which, i, j)
   return idx >= 0 && extraCount.value >= idx + 1
+}
+
+function extraComputing(which: 'A' | 'B', i: number, j: number) {
+  return showApBp.value && encoding.value && !extraLocked(which, i, j)
+}
+
+function qrCellClass(which: 'A' | 'B', i: number, j: number, data: boolean[][]) {
+  if (extraComputing(which, i, j))
+    return 'is-computing'
+  if (!extraLocked(which, i, j))
+    return 'is-wait'
+  return data[i]![j]! ? 'is-qr-black' : 'is-qr-white'
 }
 
 function noiseIndex(i: number, j: number) {
@@ -242,8 +296,14 @@ function isNoise(i: number, j: number) {
   return idx >= 0 && noiseShown.value >= idx + 1
 }
 
-function mVal(i: number, j: number) {
-  return isNoise(i, j) ? M[i]![j]! : exact[i]![j]!
+function mCellClass(i: number, j: number) {
+  if (isNoise(i, j))
+    return 'is-noise'
+  return qrP.data[i]![j]! ? 'is-qr-black' : 'is-qr-white'
+}
+
+function pCellClass(i: number, j: number) {
+  return qrP.data[i]![j]! ? 'is-qr-black' : 'is-qr-white'
 }
 </script>
 
@@ -280,37 +340,29 @@ function mVal(i: number, j: number) {
     </div>
 
     <div class="er-right-top">
-      <div class="er-mat is-lg" :class="{ 'is-in': showApBp }">
+      <div class="er-mat is-qr" :class="{ 'is-in': showApBp }">
         <div class="er-name"><MathTex tex="A'" /></div>
-        <div class="er-grid is-coded">
-          <div v-for="(row, r) in Ap" :key="`Ap-${r}`" class="er-row">
+        <div class="er-grid is-qr">
+          <div v-for="(row, r) in qrA.data" :key="`Ap-${r}`" class="er-row">
             <div
-              v-for="(val, c) in row"
+              v-for="(_bit, c) in row"
               :key="`Ap-${r}-${c}`"
               class="er-cell"
-              :class="{
-                'is-msg': isMsg(r, c),
-                'is-extra': extraVisible(r, c) && !isMsg(r, c),
-                'is-wait': !extraVisible(r, c),
-              }"
-            >{{ extraVisible(r, c) ? val : '' }}</div>
+              :class="qrCellClass('A', r, c, qrA.data)"
+            />
           </div>
         </div>
       </div>
-      <div class="er-mat is-lg" :class="{ 'is-in': showApBp }">
+      <div class="er-mat is-qr" :class="{ 'is-in': showApBp }">
         <div class="er-name"><MathTex tex="B'" /></div>
-        <div class="er-grid is-coded">
-          <div v-for="(row, r) in Bp" :key="`Bp-${r}`" class="er-row">
+        <div class="er-grid is-qr">
+          <div v-for="(row, r) in qrB.data" :key="`Bp-${r}`" class="er-row">
             <div
-              v-for="(val, c) in row"
+              v-for="(_bit, c) in row"
               :key="`Bp-${r}-${c}`"
               class="er-cell"
-              :class="{
-                'is-msg': isMsg(r, c),
-                'is-extra': extraVisible(r, c) && !isMsg(r, c),
-                'is-wait': !extraVisible(r, c),
-              }"
-            >{{ extraVisible(r, c) ? val : '' }}</div>
+              :class="qrCellClass('B', r, c, qrB.data)"
+            />
           </div>
         </div>
       </div>
@@ -340,16 +392,16 @@ function mVal(i: number, j: number) {
     </div>
 
     <div class="er-m-out">
-      <div class="er-mat is-lg" :class="{ 'is-in': showProducts }">
+      <div class="er-mat is-qr" :class="{ 'is-in': showProducts }">
         <div class="er-name"><MathTex tex="M(A',B')" /></div>
-        <div class="er-grid">
-          <div v-for="(row, r) in exact" :key="`M-${r}`" class="er-row">
+        <div class="er-grid is-qr">
+          <div v-for="(row, r) in qrP.data" :key="`M-${r}`" class="er-row">
             <div
-              v-for="(_val, c) in row"
+              v-for="(_bit, c) in row"
               :key="`M-${r}-${c}`"
               class="er-cell"
-              :class="{ 'is-noise': isNoise(r, c) }"
-            >{{ mVal(r, c) }}</div>
+              :class="mCellClass(r, c)"
+            />
           </div>
         </div>
       </div>
@@ -359,15 +411,16 @@ function mVal(i: number, j: number) {
           <MathTex tex="\approx" />
         </div>
 
-        <div class="er-mat is-lg" :class="{ 'is-in': showProducts }">
+        <div class="er-mat is-qr" :class="{ 'is-in': showProducts }">
           <div class="er-name"><MathTex tex="A'\cdot B'" /></div>
-          <div class="er-grid">
-            <div v-for="(row, r) in exact" :key="`P-${r}`" class="er-row">
+          <div class="er-grid is-qr">
+            <div v-for="(row, r) in qrP.data" :key="`P-${r}`" class="er-row">
               <div
-                v-for="(val, c) in row"
+                v-for="(_bit, c) in row"
                 :key="`P-${r}-${c}`"
                 class="er-cell"
-              >{{ val }}</div>
+                :class="pCellClass(r, c)"
+              />
             </div>
           </div>
         </div>
@@ -387,7 +440,7 @@ function mVal(i: number, j: number) {
   column-gap: 0.35rem;
   row-gap: 0.2rem;
   margin: 0.45rem auto 0;
-  padding-right: 7.2rem;
+  padding-right: 8.4rem;
   width: fit-content;
   max-width: 100%;
 }
@@ -405,7 +458,7 @@ function mVal(i: number, j: number) {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 0.45rem;
+  gap: 0.55rem;
 }
 
 .er-left-top {
@@ -504,8 +557,11 @@ function mVal(i: number, j: number) {
   padding: 1px;
 }
 
-.er-grid.is-coded {
-  box-shadow: inset 0 0 0 1px rgba(21, 101, 192, 0.12);
+.er-grid.is-qr {
+  gap: 0;
+  padding: 3px;
+  background: #fff;
+  border: 1px solid #90a4ae;
 }
 
 .er-grid.is-clean {
@@ -517,6 +573,10 @@ function mVal(i: number, j: number) {
   gap: 1px;
 }
 
+.er-grid.is-qr .er-row {
+  gap: 0;
+}
+
 .er-cell {
   display: flex;
   align-items: center;
@@ -526,9 +586,8 @@ function mVal(i: number, j: number) {
   font-family: 'Fira Code', monospace;
   line-height: 1;
   transition:
-    background-color 0.18s ease,
-    color 0.18s ease,
-    opacity 0.16s ease;
+    background-color 0.16s ease,
+    color 0.16s ease;
 }
 
 .er-mat.is-sm .er-cell {
@@ -537,26 +596,29 @@ function mVal(i: number, j: number) {
   font-size: 8px;
 }
 
-.er-mat.is-lg .er-cell {
-  width: 13px;
-  height: 13px;
-  font-size: 7px;
-}
-
-.er-cell.is-msg,
-.er-cell.is-extra {
-  background: #fff;
+.er-mat.is-qr .er-cell {
+  width: 4px;
+  height: 4px;
 }
 
 .er-cell.is-wait {
   background: #eceff1;
-  color: transparent;
+}
+
+.er-cell.is-computing {
+  background: #ffcc80;
+}
+
+.er-cell.is-qr-black {
+  background: #212121;
+}
+
+.er-cell.is-qr-white {
+  background: #fff;
 }
 
 .er-cell.is-noise {
   background: #f8bbd0;
-  color: #880e4f;
-  font-weight: 700;
 }
 
 .er-cell.is-clean {

@@ -14,7 +14,6 @@ const DOMAIN = { w: 240, h: 168, rx: 14 }
 const R_MIN = 12
 const R_MAX = 96
 const RIM_HIT = 8
-const HANDLE_HIT = 9
 const POINT_R = computed(() => props.unique ? 3.15 : 1.85)
 
 function latticePoints(
@@ -93,10 +92,6 @@ function inBall(x: number, y: number) {
 }
 
 function nearRim(x: number, y: number) {
-  const hx = cx.value + ballR.value
-  const hy = cy.value
-  if (Math.hypot(x - hx, y - hy) <= HANDLE_HIT)
-    return true
   return Math.abs(distToCenter(x, y) - ballR.value) <= RIM_HIT
 }
 
@@ -259,14 +254,6 @@ onUnmounted(() => {
         :cy="cy"
         :r="ballR"
         class="ld-rim-hit"
-      />
-
-      <circle
-        :cx="cx + ballR"
-        :cy="cy"
-        r="4.4"
-        class="ld-handle"
-        :class="{ 'is-active': resizing || overRim }"
       />
       </template>
 
@@ -477,17 +464,6 @@ onUnmounted(() => {
   stroke: transparent;
   stroke-width: 12;
   pointer-events: none;
-}
-
-.ld-handle {
-  fill: #fff;
-  stroke: #ff8000;
-  stroke-width: 1.15;
-  pointer-events: none;
-}
-
-.ld-handle.is-active {
-  fill: #ff8000;
 }
 
 .ld-point {

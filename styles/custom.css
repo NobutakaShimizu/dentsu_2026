@@ -1235,10 +1235,14 @@ strong {
 .slidev-layout.section,
 .slide-with-particles {
   position: relative !important;
-  overflow: hidden;
+  overflow: visible;
   min-height: 100%;
   height: 100%;
   isolation: isolate;
+}
+
+.slidev-slide-content.slide-particle-bg-unclip {
+  overflow: visible !important;
 }
 
 .slide-particle-bg {
@@ -1247,6 +1251,7 @@ strong {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
+  background-color: var(--neversink-bg-color, #fff);
 }
 
 .slide-particle-bg-gradient {
@@ -1282,7 +1287,7 @@ strong {
   background-image:
     linear-gradient(rgba(180, 83, 9, 0.055) 1px, transparent 1px),
     linear-gradient(90deg, rgba(180, 83, 9, 0.055) 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-size: var(--slide-particle-grid-size, 22px) var(--slide-particle-grid-size, 22px);
   mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.07));
 }
 

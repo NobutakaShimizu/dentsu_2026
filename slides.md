@@ -210,41 +210,10 @@ $AB$の**できるだけ多くの成分**を計算せよ.
 
 </div>
 
+- 入力がランダム
+- 全成分の計算でなくてよい（近似）
+
 <ApproxMatrixMulAnimation />
-
----
-layout: top-title
-color: amber-light
----
-
-::title::
-
-# 行列積の近似
-
-
-::content::
-
-<div class="definition">
-
-アルゴリズム $\mathsf{Algo}$ の**平均近似率** $\alpha$ を以下で定義
-
-$$
-  \alpha:=\Pr_{\substack{A,B\sim\F^{n\times n}\\ i,j\sim[n]}}[\mathsf{Algo}(A,B)_{i,j}=(AB)_{i,j}]
-$$
-
-</div>
-
-- $\alpha = 1$はランダム行列に対する**厳密**行列積
-- $\alpha = \frac{1}{\abs{\F}}$なら簡単 (ランダムな行列を出力すればよい)
-
-<div class="question">
-
-$n^{2+o(1)}$時間で非自明な **$\alpha > \frac{1}{|\F|}+\varepsilon$** を達成できるか?
-
-＊ $|\F|$ や $\varepsilon$ は $n$ に依存しない定数として扱う
-
-</div>
-
 
 ---
 layout: top-title
@@ -281,7 +250,6 @@ color: amber-light
 
 </v-clicks>
 
-
 ---
 layout: top-title
 color: amber-light
@@ -289,34 +257,33 @@ color: amber-light
 
 ::title::
 
-# 問題設定
+# 行列積の近似
 
 
 ::content::
 
 <div class="definition">
 
-二つの行列$C,D\in \mathbb{F}^{n\times n}$の**近似率** $\agr(C,D)$を以下で定義する:
+アルゴリズム $\mathsf{Algo}$ の**平均近似率** $\alpha$ を以下で定義
 
 $$
-  \begin{align*}
-    \agr(C,D) &:= \Pr_{i,j\sim[n]}[C(i,j) = D(i,j)]
-  \end{align*}
+  \alpha:=\Pr_{\substack{A,B\sim\F^{n\times n}\\ i,j\sim[n]}}[\mathsf{Algo}(A,B)_{i,j}=(AB)_{i,j}]
 $$
 
 </div>
 
-<v-click>
+- $\alpha = 1$は行列積の**厳密**計算
+- $\alpha = \frac{1}{\abs{\F}}$なら簡単 (ランダムな行列を出力すればよい)
 
-- $1-$**ハミング距離** (異なる値をとっている成分の割合) に等しい
-- 平均近似率 $\alpha$ は以下のように表せる：
-$$
-  \begin{align*}
-    \Exp_{\substack{A,B\sim\Fp^{n\times n}}}[\agr(M(A,B),AB)] &\ge \alpha
-  \end{align*}
-$$
+<div class="question">
 
-</v-click>
+$n^{2+o(1)}$時間で非自明な **$\alpha > \frac{1}{|\F|}+\varepsilon$** を達成できるか?
+
+＊ $|\F|$ や $\varepsilon$ は $n$ に依存しない定数として扱う
+
+</div>
+
+
 
 ---
 layout: top-title
@@ -393,7 +360,7 @@ color: amber-light
 
 ::content::
 
-任意の入力 $A,B$ に対して近似を計算するアルゴリズム $M$ を仮定する
+単純のため、**任意の**入力 $A,B$ に対して近似を計算するアルゴリズム $M$ を仮定する (最悪時の仮定)
 
 <EncodingReductionAnimation />
 
@@ -401,7 +368,8 @@ color: amber-light
 
 <div class="topic-box">
 
-ポイント: **誤り訂正符号**を使ってencoding/decodingを設計
+- ポイント1. **誤り訂正符号**で行列を符号化
+- ポイント2. $A$の符号化 $\times$ $B$の符号化 $=$ $AB$の符号化
 
 </div>
 
@@ -428,12 +396,12 @@ color: amber-light
 
 ::content::
 
-- 有限体上の線型写像 $\Enc\colon \F^n\to\F^N$ を **符号化関数**という
-  - 符号化関数 $\Enc$ に対し, $\calC = \Enc(\F^n)$を **(線形)符号** という (要はただの部分空間)
+- 線型写像 $\Enc\colon \F^n\to\F^N$ を **符号化関数**という ($\F$は有限体)
+  - 像 $\calC = \Enc(\F^n)$を **(線形)符号** といい、$x\in\calC$ を **符号語** という
   - 常に $N\ge n$ を仮定し、$r=n/N$ を**レート**と呼ぶ
   - ランク落ちはしないと仮定 ($\dim\calC=n$)
 
-- ベクトル同士の距離: $\dist(x,y) = \frac{1}{n}\sum_{i\in[n]} \mathbf{1}_{x(i)\ne y(i)}$ (ハミング距離)
+- ベクトル同士の距離: **$\dist(x,y) = \frac{1}{n}\sum_{i\in[n]} \mathbf{1}_{x(i)\ne y(i)}$** (ハミング距離)
 - 符号$\calC$の**距離**: $\delta := \min_{\substack{x\ne y \\x,y\in \calC}}\dist(x,y)$
   
 

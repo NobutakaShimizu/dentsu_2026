@@ -31,8 +31,11 @@ interface Ball {
 const root = ref<HTMLElement | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
 
+const UNCLIP_CLASS = 'slide-particle-bg-unclip'
+
 let rafId = 0
 let resizeObs: ResizeObserver | null = null
+let unclipEl: HTMLElement | null = null
 let w = 0
 let h = 0
 let ctx: CanvasRenderingContext2D | null = null
@@ -98,6 +101,14 @@ function makeValues(n: number, salt: number) {
   )
 }
 
+function layoutLattice() {
+  latGap = Math.max(22, Math.min(32, Math.round(Math.min(w, h) / 28)))
+  latOx = 18
+  latOy = 16
+  latCols = Math.ceil((w - latOx * 2) / latGap) + 1
+  latRows = Math.ceil((h - latOy * 2) / latGap) + 1
+}
+
 function initScene() {
   const cell = Math.max(13, Math.min(20, Math.round(Math.min(w, h) / 36)))
   mats = [
@@ -105,15 +116,69 @@ function initScene() {
     { x: w * 0.64, y: h * 0.1, vx: -0.05, vy: 0.04, n: 5, cell: cell * 0.92, alpha: 0.34, values: makeValues(5, 8), scan: 11, noise: [] },
     { x: w * 0.38, y: h * 0.58, vx: 0.045, vy: -0.03, n: 7, cell: cell * 0.82, alpha: 0.28, values: makeValues(7, 14), scan: 19, noise: [] },
   ]
-  latGap = Math.max(22, Math.min(32, Math.round(Math.min(w, h) / 28)))
-  latOx = 18
-  latOy = 16
-  latCols = Math.ceil((w - latOx * 2) / latGap) + 1
-  latRows = Math.ceil((h - latOy * 2) / latGap) + 1
   balls = [
     { x: w * 0.72, y: h * 0.38, r: Math.min(w, h) * 0.13, vx: 0.11, vy: 0.06 },
     { x: w * 0.28, y: h * 0.68, r: Math.min(w, h) * 0.1, vx: -0.07, vy: 0.09 },
   ]
+  layoutLattice()
+}
+
+function measureViewport() {
+  const host = root.value
+  if (!host)
+    return null
+
+  const slide = (host.closest('.slidev-page') as HTMLElement | null)
+    ?? (host.closest('.slidev-layout') as HTMLElement | null)
+    ?? host.parentElement
+  if (!slide)
+    return null
+
+  const slideW = Math.max(slide.clientWidth, 1)
+  const slideH = Math.max(slide.clientHeight, 1)
+  const slideRect = slide.getBoundingClientRect()
+  if (slideRect.width < 8 || slideRect.height < 8)
+    return null
+
+  const scale = slideRect.width / slideW
+  if (!(scale > 0.05))
+    return null
+
+  const container = host.closest('.slidev-slide-container') as HTMLElement | null
+  const viewW = Math.max(container?.clientWidth || window.innerWidth, 1)
+  const viewH = Math.max(container?.clientHeight || window.innerHeight, 1)
+
+  let drawW = viewW
+  let drawH = viewH
+  let cssW = viewW / scale
+  let cssH = viewH / scale
+
+  // Overview / print など、スライド外にはみ出さない
+  if (!container || cssW > slideW * 4 || cssH > slideH * 4) {
+    drawW = slideRect.width
+    drawH = slideRect.height
+    cssW = slideW
+    cssH = slideH
+  }
+
+  return {
+    drawW: Math.max(1, Math.round(drawW)),
+    drawH: Math.max(1, Math.round(drawH)),
+    cssW,
+    cssH,
+    ox: (slideW - cssW) / 2,
+    oy: (slideH - cssH) / 2,
+    scale,
+  }
+}
+
+function syncUnclip(on: boolean) {
+  const host = root.value
+  const content = host?.closest('.slidev-slide-content') as HTMLElement | null
+  if (unclipEl && unclipEl !== content)
+    unclipEl.classList.remove(UNCLIP_CLASS)
+  unclipEl = content
+  content?.classList.toggle(UNCLIP_CLASS, on)
 }
 
 function resize() {
@@ -122,19 +187,37 @@ function resize() {
   if (!el || !host)
     return
 
-  const rect = host.getBoundingClientRect()
+  const viewport = measureViewport()
+  if (!viewport)
+    return
+
+  const first = mats.length === 0
+  const sizeChanged = viewport.drawW !== w || viewport.drawH !== h
+  w = viewport.drawW
+  h = viewport.drawH
+
+  host.style.inset = 'auto'
+  host.style.left = `${viewport.ox}px`
+  host.style.top = `${viewport.oy}px`
+  host.style.width = `${viewport.cssW}px`
+  host.style.height = `${viewport.cssH}px`
+  host.style.setProperty('--slide-particle-grid-size', `${22 / viewport.scale}px`)
+  syncUnclip(true)
+
   const dpr = Math.min(window.devicePixelRatio || 1, 2)
-  w = Math.max(Math.floor(rect.width), 1)
-  h = Math.max(Math.floor(rect.height), 1)
   el.width = Math.floor(w * dpr)
   el.height = Math.floor(h * dpr)
-  el.style.width = `${w}px`
-  el.style.height = `${h}px`
+  el.style.width = '100%'
+  el.style.height = '100%'
   ctx = el.getContext('2d')
   if (!ctx)
     return
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-  initScene()
+
+  if (first)
+    initScene()
+  else if (sizeChanged)
+    layoutLattice()
 }
 
 function wrap(v: number, min: number, max: number) {
@@ -285,7 +368,13 @@ let lastT = 0
 function draw(now: number) {
   rafId = requestAnimationFrame(draw)
 
-  if (!isRenderable() || !ctx || document.hidden)
+  if (!isRenderable() || document.hidden)
+    return
+
+  const viewport = measureViewport()
+  if (!ctx || !viewport || viewport.drawW !== w || viewport.drawH !== h)
+    resize()
+  if (!ctx)
     return
 
   const t = now / 1000
@@ -312,6 +401,11 @@ function stop() {
   cancelAnimationFrame(rafId)
 }
 
+function onWindowResize() {
+  if (isRenderable())
+    resize()
+}
+
 onMounted(async () => {
   if (!root.value)
     return
@@ -319,16 +413,25 @@ onMounted(async () => {
   await nextTick()
   requestAnimationFrame(() => start())
 
+  const observeTarget = (root.value.closest('.slidev-slide-container') as HTMLElement | null)
+    ?? root.value.parentElement
+    ?? root.value
   resizeObs = new ResizeObserver(() => {
     if (isRenderable())
       resize()
   })
-  resizeObs.observe(root.value)
+  resizeObs.observe(observeTarget)
+  window.addEventListener('resize', onWindowResize)
+  window.visualViewport?.addEventListener('resize', onWindowResize)
 })
 
 onUnmounted(() => {
   stop()
   resizeObs?.disconnect()
+  window.removeEventListener('resize', onWindowResize)
+  window.visualViewport?.removeEventListener('resize', onWindowResize)
+  unclipEl?.classList.remove(UNCLIP_CLASS)
+  unclipEl = null
 })
 </script>
 
