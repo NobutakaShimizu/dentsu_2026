@@ -549,6 +549,26 @@ color: amber-light
 
 </v-clicks>
 
+---
+layout: top-title
+color: amber-light
+---
+
+::title::
+
+# 符号の例
+
+::content::
+
+- **アダマール符号** $\Enc\colon\F_2^n\to\F_2^{\textcolor{#c2185b}{2^n}}$
+  - $\Enc(a)=\rbra{\sum_{i=1}^n a_i x_i \bmod 2}_{x\in \F_2^n}$
+  - ベクトル$a\in\F_2^n$を「$a$を係数ベクトルとする線形関数 $x\mapsto \langle a,x\rangle$の評価値を並べたベクトル」に変換
+  - レートがとても低いが復号能力は高い (cf. Goldreich--Levin)
+  - 小さい体上でも使えるのが魅力的 (今日の発表では活用しない)
+- **リード=ソロモン符号** $\Enc\colon \F_p^n\to \F_p^{p}$
+  - $\Enc(a)=\rbra{ \sum_{i=0}^{n-1} a_i x^i }_{x\in \F_p}$
+  - レートも復号能力も高い
+  - 大きい体じゃないと使えない
 
 ---
 layout: section
@@ -821,11 +841,7 @@ color: amber-light
 
 ::content::
 
-<div style="display: flex; justify-content: center; align-items: center;">
-
-![行列の構成](./images/expander_construction.svg)
-
-</div>
+<ExpanderWalkConstructionAnimation />
 
 <figcaption style="text-align: center; font-size: 0.8em; color: #666;">
 
@@ -858,6 +874,32 @@ color: amber-light
 layout: top-title
 color: amber-light
 ---
+
+::title::
+
+# 整数上の行列積への拡張 (FOCS26)
+
+::content::
+
+- これまで：有限体 $\F_p$ 上の行列積
+  - 誤り訂正符号やほとんどの復号アルゴリズムが代数的で、$\F_p$ 上で考えている
+- エクスパンダーウォーク符号は「組み合わせ的」
+  - ウォークに沿って足すだけ
+  - うまく修正して整数上に拡張できる
+
+<div class="theorem" data-callout-title="Hirahara, S., FOCS'26">
+
+一様ランダムな行列$A,B\sim\binset^{n\times n}$ を入力として受け取り、**整数上**の行列積を平均近似率 $\alpha$ で計算する $T(n)$ 時間アルゴリズムが存在すれば、
+任意の行列$A,B\in\binset^{n\times n}$ に対して$AB$を計算する乱択 **$2^{2^{2^{\mathrm{poly}(1/\alpha)}}} T(n)$** 時間アルゴリズムが存在する.
+
+</div>
+
+- 実用からは程遠い...
+
+---
+layout: top-title
+color: amber-light
+---
 ::title::
 
 # まとめ
@@ -865,12 +907,12 @@ color: amber-light
 
 ::content::
 
-- 行列積に対する近似アルゴリズムが設計できたら, ほぼ同程度の時間で全成分を計算する行列積アルゴリズムが構成できる
+- 行列積に対する近似アルゴリズム $\to$ 厳密アルゴリズムの変換
 - 証明手法: 誤り訂正符号のリスト復号を行列に適用
+  - テンソル符号 + リード=ソロモン符号 <a href="https://dl.acm.org/doi/10.1145/3717823.3718244" class="cite-reference">\[Hirahara, Shimizu, STOC'25\]</a>
   - **エクスパンダーウォーク符号** + 近似リスト復号アルゴリズム
 - **体が大きい時**でも別の符号を使えば同様の結果を示せる
-  - 例: $\abs{\F} \ge n/\alpha$のとき, リードソロモン符号+テンソル符号 <a href="https://dl.acm.org/doi/10.1145/3717823.3718244" class="cite-reference">\[Hirahara, Shimizu, STOC'25\]</a>
 - 今後の方向性
   - **実数**上の行列積で同様のことができないか? (実用的には実数上の行列積が主流のはず)
-    - どのような定式化が良いか?
+  - ハミング距離以外の定式化?
   - $\varepsilon$への依存度の改善 <a class="cite-reference" href="https://arxiv.org/abs/2502.13065">\[Vaikuntanathan, Zamir, '25\]</a>, <a class="cite-reference" href="https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.APPROX/RANDOM.2025.29">\[Shinkar, Singh, RANDOM'25\]</a>
