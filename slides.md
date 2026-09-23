@@ -82,7 +82,7 @@ color: amber-light
 </div>
 
 - STOC, FOCS: 理論計算機科学で一番レベルが高い国際会議
-- 主眼：誤り訂正符号、エクスパンダーグラフをどう応用するか？
+- 主眼：誤り訂正符号、エクスパンダーグラフをどのように利用するのか？
   - 細かい証明はなし
 
 ---
@@ -341,11 +341,204 @@ color: amber-light
   - <a href="https://dl.acm.org/doi/10.1145/3564246.3585189" class="cite-reference">\[Hirahara, Shimizu, STOC'23\]</a>
   
 - 後続研究: $\varepsilon$への依存度の改善
-  - <a class="cite-reference" href="https://arxiv.org/abs/2502.13065">\[Vaikuntanathan, Zamir, '25\]</a> (ただし, Learning with Parityの計算量的困難性に依拠)
+  - <a class="cite-reference" href="https://arxiv.org/abs/2502.13065">\[Vaikuntanathan, Zamir, SODA'26\]</a> (ただし, Learning with Parityの計算量的困難性に依拠)
   - <a class="cite-reference" href="https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.APPROX/RANDOM.2025.29">\[Shinkar, Singh, RANDOM'25\]</a>: 我々の$2^{2^{\poly(1/\varepsilon)}}$を$2^{\poly(1/\varepsilon)}$に改善
 
 
 </v-clicks>
+
+---
+layout: top-title
+color: amber-light
+---
+
+::title::
+
+# 全体の流れ
+
+::content::
+
+<div class="flow-chain">
+
+<div class="flow-pair">
+
+<div class="flow-eq">
+
+$$\begin{align*}
+\Pr_{A,B,i,j}[M(A,B)_{i,j}=(AB)_{i,j}] \ge \frac{1}{p}+\varepsilon
+\end{align*}$$
+
+</div>
+
+<div v-click="1" class="flow-step">
+<div class="flow-link">
+<svg class="flow-arrow" viewBox="0 0 40 80" aria-hidden="true">
+<path class="flow-shaft" d="M20 4 V56" />
+<path class="flow-head" d="M20 76 L7 50 H33 Z" />
+</svg>
+<span class="flow-word">error-correcting code</span>
+</div>
+
+<div class="flow-eq">
+
+$$\begin{align*}
+\Pr_{A,B}\left[ \Pr_{i,j}[M'(A,B)_{i,j}=(AB)_{i,j}]\ge \textcolor{#c2185b}{1-\delta} \right] \ge \varepsilon'
+\end{align*}$$
+
+</div>
+</div>
+
+<div v-click="4" class="flow-highlight">
+<span class="flow-note">本日はこのパートのみ解説</span>
+</div>
+
+</div>
+
+<div v-click="2" class="flow-step">
+<div class="flow-link">
+<svg class="flow-arrow" viewBox="0 0 40 80" aria-hidden="true">
+<path class="flow-shaft" d="M20 4 V56" />
+<path class="flow-head" d="M20 76 L7 50 H33 Z" />
+</svg>
+<span class="flow-word">hardness amplification</span>
+</div>
+
+<div class="flow-eq">
+
+$$\begin{align*}
+\Pr_{A,B}\left[ \Pr_{i,j}[M'(A,B)_{i,j}=(AB)_{i,j}]\ge 1-\delta \right] \ge \textcolor{#c2185b}{1-\delta'}
+\end{align*}$$
+
+</div>
+</div>
+
+<div v-click="3" class="flow-step">
+<div class="flow-link">
+<svg class="flow-arrow" viewBox="0 0 40 80" aria-hidden="true">
+<path class="flow-shaft" d="M20 4 V56" />
+<path class="flow-head" d="M20 76 L7 50 H33 Z" />
+</svg>
+<span class="flow-word">local correction</span>
+</div>
+
+<div class="flow-eq">
+
+$$\begin{align*}
+\textcolor{#c2185b}{\forall A,B},\quad\Pr_{M'''}\left[ \Pr_{i,j}[M'(A,B)_{i,j}=(AB)_{i,j}] \textcolor{#c2185b}{= 1} \right] \ge \frac{2}{3}
+\end{align*}$$
+
+</div>
+</div>
+
+</div>
+
+<style>
+.flow-chain {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 0.15rem;
+}
+.flow-pair {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.4rem 1.15rem 0.28rem;
+}
+.flow-eq {
+  min-height: 2.05rem;
+  font-size: 0.9em;
+}
+.flow-eq .katex-display {
+  margin: 0.08rem 0;
+}
+.flow-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.flow-link {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 24rem;
+  height: 2.55rem;
+  margin: 0.02rem 0;
+}
+.flow-arrow {
+  display: block;
+  width: 1.65rem;
+  height: 2.45rem;
+  overflow: hidden;
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 0.5s ease;
+}
+.flow-shaft {
+  fill: none;
+  stroke: #546e7a;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+.flow-head {
+  fill: #546e7a;
+}
+.flow-word {
+  position: absolute;
+  left: calc(50% + 0.95rem);
+  top: 50%;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: #c2185b;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-0.2rem, -50%);
+  transition: opacity 0.35s ease 0.18s, transform 0.35s ease 0.18s;
+}
+.flow-step .flow-eq {
+  opacity: 0;
+  transform: translateY(-0.45rem);
+  transition: opacity 0.4s ease 0.38s, transform 0.4s ease 0.38s;
+}
+.flow-step:not(.slidev-vclick-hidden) .flow-arrow {
+  clip-path: inset(0 0 0 0);
+}
+.flow-step:not(.slidev-vclick-hidden) .flow-word {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+.flow-step:not(.slidev-vclick-hidden) .flow-eq {
+  opacity: 1;
+  transform: none;
+}
+.flow-highlight {
+  position: absolute;
+  inset: 0;
+  border: 2.5px solid #c2185b;
+  border-radius: 12px;
+  pointer-events: none;
+  transform: scale(0.96);
+  transform-origin: center;
+  transition: transform 0.35s ease;
+}
+.flow-highlight:not(.slidev-vclick-hidden) {
+  transform: scale(1);
+}
+.flow-note {
+  position: absolute;
+  left: 0.85rem;
+  top: 0;
+  transform: translateY(-50%);
+  padding: 0 0.35rem;
+  background: #fff8e1;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #c2185b;
+  white-space: nowrap;
+}
+</style>
 
 ---
 layout: top-title
