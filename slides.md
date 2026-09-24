@@ -84,6 +84,8 @@ color: amber-light
 - STOC, FOCS: 理論計算機科学で一番レベルが高い国際会議
 - 主眼：誤り訂正符号、エクスパンダーグラフをどのように利用するのか？
   - 細かい証明はなし
+- 研究集会の主旨「他分野の専門家向けの高度な入門講義」
+  -> **符号（code）に入門**します。
 
 ---
 layout: top-title
@@ -389,7 +391,7 @@ $$\begin{align*}
 </div>
 
 <div v-click="4" class="flow-highlight">
-<span class="flow-note">本日はこのパートのみ解説</span>
+<span class="flow-note">本日は主にこのパートを解説</span>
 </div>
 
 </div>
